@@ -2,38 +2,37 @@ package http
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/common/configuration"
 	"github.com/sirupsen/logrus"
+	"net"
 	"net/http"
 )
 
 type Server struct {
-	server *http.Server
+	*http.Server
 }
 
-func NewHttpServer(config *configuration.Configuration) *Server {
-	router := NewRouter()
+func NewHttpServer(config *configuration.Configuration, r *Router) *Server {
+	srv := &http.Server{Addr: fmt.Sprintf("%s:%d", config.HTTP.IP, config.HTTP.Port), Handler: r}
+	return &Server{srv}
+}
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", config.HTTP.IP, config.HTTP.Port),
-		Handler: router,
+func (srv *Server) Stop(ctx context.Context) error {
+	err := srv.Shutdown(ctx)
+	if err != nil {
+		return err
 	}
-
-	return &Server{server: server}
+	logrus.Println("HTTP stopped!")
+	return nil
 }
 
-func (s *Server) Stop(ctx context.Context) error {
-	logrus.Infof("Shutting down server...")
-	return s.server.Shutdown(ctx)
-}
-
-func (s *Server) Start() {
-	go func() {
-		logrus.Infof("Starting server on %s", s.server.Addr)
-		if err := s.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			logrus.Fatalf("Failed to listen and serve: %+v", err)
-		}
-	}()
+func (srv *Server) Start(ctx context.Context) error {
+	ln, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		return err
+	}
+	go srv.Serve(ln)
+	logrus.Printf("HTTP started! Server listening on %v", srv.Addr)
+	return nil
 }
