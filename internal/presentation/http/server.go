@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/common/configuration"
 	"github.com/sirupsen/logrus"
+	"log"
 	"net"
 	"net/http"
 )
@@ -23,7 +24,7 @@ func (srv *Server) Stop(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	logrus.Println("HTTP stopped!")
+	logrus.Println("HTTP server stopped!")
 	return nil
 }
 
@@ -32,7 +33,13 @@ func (srv *Server) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	go srv.Serve(ln)
-	logrus.Printf("HTTP started! Server listening on %v", srv.Addr)
+
+	go func() {
+		if err := srv.Serve(ln); err != nil {
+			log.Fatalf("HTTP server error!: %v", err)
+		}
+	}()
+
+	logrus.Printf("HTTP server started! Server listening on %v", srv.Addr)
 	return nil
 }
