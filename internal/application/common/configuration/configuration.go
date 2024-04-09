@@ -7,20 +7,8 @@ import (
 )
 
 type Configuration struct {
-	Postgres PostgresConfiguration
-	HTTP     HTTPConfiguration
-}
-
-type PostgresConfiguration struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-}
-
-type HTTPConfiguration struct {
-	IP   string `json:"ip" required:"true" default:"0.0.0.0"`
-	Port int    `json:"port" required:"true" default:"8000"`
+	Postgres PostgresConfiguration `json:"postgres" required:"true"`
+	HTTP     HTTPConfiguration     `json:"http" required:"true"`
 }
 
 func loadEnvironment(filename string) error {
@@ -29,6 +17,7 @@ func loadEnvironment(filename string) error {
 		err = godotenv.Overload(filename)
 	} else {
 		err = godotenv.Load()
+		// handle if .env file does not exist, this is OK
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -42,7 +31,7 @@ func LoadConfiguration(filename string) (*Configuration, error) {
 	}
 
 	config := new(Configuration)
-	if err := envconfig.Process("template", config); err != nil {
+	if err := envconfig.Process("", config); err != nil {
 		return nil, err
 	}
 
