@@ -1,8 +1,9 @@
 package main
 
 import (
-	"context"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/common/configuration"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http"
 	"github.com/sirupsen/logrus"
 	fxlogrus "github.com/takt-corp/fx-logrus"
@@ -29,24 +30,8 @@ func main() {
 			return &fxlogrus.LogrusLogger{Logger: logrus.StandardLogger()}
 		}),
 		fx.Supply(config),
-		fx.Provide(
-			// Presentation | API
-			http.NewHttpServer,
-			http.NewRouter,
-		),
-		fx.Invoke(
-			// http
-			func(lc fx.Lifecycle, httpServer *http.Server) {
-				logrus.Println("Starting HTTP server")
-				lc.Append(fx.Hook{
-					OnStart: func(ctx context.Context) error {
-						return httpServer.Start(ctx)
-					},
-					OnStop: func(ctx context.Context) error {
-						return httpServer.Stop(ctx)
-					},
-				})
-			},
-		),
+		http.Module,
+		infrastructure.Module,
+		application.Module,
 	).Run()
 }
