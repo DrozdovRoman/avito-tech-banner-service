@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	client "github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/client/v1"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/fx"
 )
@@ -10,6 +11,7 @@ var Module = fx.Options(
 	fx.Provide(
 		NewHttpServer,
 		NewRouter,
+		client.NewBannerHandler,
 	),
 
 	fx.Invoke(

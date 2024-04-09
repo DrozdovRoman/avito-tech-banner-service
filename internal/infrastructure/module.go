@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/common/configuration"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db/postgres"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db/repository"
@@ -13,11 +14,15 @@ import (
 
 var Module = fx.Options(
 	fx.Provide(
-		repository.NewBannerRepository,
 		func(cfg *configuration.Configuration) (db.Client, error) {
 			return postgres.New(context.Background(), cfg)
 		},
+
+		func(client db.Client) banner.Repository {
+			return repository.NewBannerRepository(client)
+		},
 	),
+
 	fx.Invoke(
 		func(lifecycle fx.Lifecycle, client db.Client) {
 			lifecycle.Append(fx.Hook{
