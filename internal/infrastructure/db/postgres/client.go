@@ -13,13 +13,14 @@ type pgClient struct {
 	masterDBC db.DB
 }
 
-func New(ctx context.Context, config configuration.Configuration) (db.Client, error) {
+func New(ctx context.Context, config *configuration.Configuration) (db.Client, error) {
 	dataSource := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d",
+		"postgres://%s:%s@%s:%d/%s",
 		config.Postgres.User,
 		config.Postgres.Password,
 		config.Postgres.Host,
 		config.Postgres.Port,
+		config.Postgres.DBName,
 	)
 	dbc, err := pgxpool.Connect(ctx, dataSource)
 
