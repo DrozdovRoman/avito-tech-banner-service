@@ -68,10 +68,12 @@ func (b *BannerRepository) GetByID(ctx context.Context, bannerID int) (banner.Ba
 }
 
 func (b *BannerRepository) Add(banner banner.Banner) error {
+	_ = banner
 	return nil
 }
 
 func (b *BannerRepository) Update(banner banner.Banner) error {
+	_ = banner
 	return nil
 }
 
@@ -80,10 +82,12 @@ func (b *BannerRepository) Delete(id int) error {
 }
 
 func (b *BannerRepository) GetByFeatureID(featureID int) ([]banner.Banner, error) {
+	_ = featureID
 	return nil, nil
 }
 
 func (b *BannerRepository) GetActiveByFeatureID(featureID int) ([]banner.Banner, error) {
+	_ = featureID
 	return nil, nil
 }
 
