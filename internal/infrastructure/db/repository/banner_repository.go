@@ -78,6 +78,7 @@ func (b *BannerRepository) Update(banner banner.Banner) error {
 }
 
 func (b *BannerRepository) Delete(id int) error {
+	_ = id
 	return nil
 }
 
