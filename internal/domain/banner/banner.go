@@ -6,11 +6,13 @@ import (
 )
 
 type Banner struct {
-	ID       int             `json:"id"`
-	Tag      []int           `json:"tag"`
-	Features null.Int        `json:"features"`
-	Content  json.RawMessage `json:"content"`
-	IsActive bool            `json:"isActive"`
+	ID        int             `json:"id"`
+	Tag       []int           `json:"tag"`
+	Features  null.Int        `json:"features"`
+	Content   json.RawMessage `json:"content"`
+	IsActive  bool            `json:"isActive"`
+	CreatedAt null.Time       `json:"createdAt"`
+	UpdatedAt null.Time       `json:"updatedAt"`
 }
 
 func NewBanner() (*Banner, error) {
