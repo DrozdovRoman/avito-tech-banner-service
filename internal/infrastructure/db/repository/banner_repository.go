@@ -37,7 +37,10 @@ func (b *BannerRepository) GetAll() ([]banner.Banner, error) {
 }
 
 func (b *BannerRepository) GetByID(ctx context.Context, bannerID int) (banner.Banner, error) {
-	builderSelectByID := sq.Select(colId, colIsActive, colContent, colFeatureID, colCreatedAt, colUpdatedAt, fmt.Sprintf("array_agg(bt.%s) AS tag_ids", colTagID)).
+	builderSelectByID := sq.Select(
+		colId, colIsActive, colContent, colFeatureID, colCreatedAt, colUpdatedAt, fmt.Sprintf(
+			"COALESCE(array_agg(bt.%s) FILTER (WHERE bt.%s IS NOT NULL), '{}') AS tag_ids", colTagID, colTagID),
+	).
 		From(tableBanner).
 		PlaceholderFormat(sq.Dollar).
 		LeftJoin(fmt.Sprintf("%s bt ON %s.%s = bt.%s", tableBannerTag, tableBanner, colId, colBannerID)).
