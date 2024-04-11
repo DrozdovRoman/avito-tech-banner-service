@@ -2,22 +2,26 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
 )
 
 const (
-	table     = "banner"
-	id        = "id"
-	isActive  = "is_active"
-	content   = "content"
-	featureID = "feature_id"
-	createdAt = "created_at"
-	updatedAt = "updated_at"
+	tableBanner  = "banner"
+	colId        = "id"
+	colIsActive  = "is_active"
+	colContent   = "content"
+	colFeatureID = "feature_id"
+	colCreatedAt = "created_at"
+	colUpdatedAt = "updated_at"
+
+	tableBannerTag = "banner_tag"
+	colBannerID    = "banner_id"
+	colTagID       = "tag_id"
 )
 
 type BannerRepository struct {
@@ -33,13 +37,16 @@ func (b *BannerRepository) GetAll() ([]banner.Banner, error) {
 }
 
 func (b *BannerRepository) GetByID(ctx context.Context, bannerID int) (banner.Banner, error) {
-	builderSelectByID := sq.Select(id, isActive, content, featureID, createdAt, updatedAt).
-		From(table).
+	builderSelectByID := sq.Select(colId, colIsActive, colContent, colFeatureID, colCreatedAt, colUpdatedAt, fmt.Sprintf("array_agg(bt.%s) AS tag_ids", colTagID)).
+		From(tableBanner).
 		PlaceholderFormat(sq.Dollar).
-		Where(sq.Eq{id: bannerID}).
+		LeftJoin(fmt.Sprintf("%s bt ON %s.%s = bt.%s", tableBannerTag, tableBanner, colId, colBannerID)).
+		GroupBy(fmt.Sprintf("%s.%s", tableBanner, colId)).
+		Where(sq.Eq{colId: bannerID}).
 		Limit(1)
 
 	query, args, err := builderSelectByID.ToSql()
+
 	if err != nil {
 		return banner.Banner{}, fmt.Errorf("failed to build query: %v", err)
 	}
@@ -48,17 +55,20 @@ func (b *BannerRepository) GetByID(ctx context.Context, bannerID int) (banner.Ba
 		Name:     "banner_repository.Get",
 		QueryRaw: query,
 	}
+
 	var result banner.Banner
 	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(
 		&result.ID,
-		&result.Tag,
-		&result.Features,
-		&result.Content,
 		&result.IsActive,
+		&result.Content,
+		&result.FeatureID,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.TagIDs,
 	)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return banner.Banner{}, fmt.Errorf("banner with ID %d not found", bannerID)
 		}
 		return banner.Banner{}, fmt.Errorf("failed to scan row: %v", err)
@@ -93,5 +103,10 @@ func (b *BannerRepository) GetActiveByFeatureID(featureID int) ([]banner.Banner,
 }
 
 func (b *BannerRepository) GetActive() ([]banner.Banner, error) {
+	return nil, nil
+}
+
+func (b *BannerRepository) GetActiveByTagID(tagID int) ([]banner.Banner, error) {
+	_ = tagID
 	return nil, nil
 }
