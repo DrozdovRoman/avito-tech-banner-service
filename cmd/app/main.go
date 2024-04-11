@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "github.com/DrozdovRoman/avito-tech-banner-service/docs"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/common/configuration"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure"
