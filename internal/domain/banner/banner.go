@@ -7,8 +7,8 @@ import (
 
 type Banner struct {
 	ID        int             `json:"id"`
-	Tag       []int           `json:"tag"`
-	Features  null.Int        `json:"features"`
+	TagIDs    []int           `json:"tagIDs"`
+	FeatureID null.Int        `json:"featureID"`
 	Content   json.RawMessage `json:"content"`
 	IsActive  bool            `json:"isActive"`
 	CreatedAt null.Time       `json:"createdAt"`
@@ -33,34 +33,34 @@ func (b *Banner) SetContent(content json.RawMessage) {
 	b.Content = content
 }
 
-func (b *Banner) GetTag() []int {
-	return b.Tag
+func (b *Banner) GetTagIDs() []int {
+	return b.TagIDs
 }
 
-func (b *Banner) AddTag(tag int) {
-	for _, existingTag := range b.Tag {
+func (b *Banner) AddTagID(tag int) {
+	for _, existingTag := range b.TagIDs {
 		if existingTag == tag {
 			return
 		}
 	}
-	b.Tag = append(b.Tag, tag)
+	b.TagIDs = append(b.TagIDs, tag)
 }
 
-func (b *Banner) RemoveTag(tag int) {
-	for i, existingTag := range b.Tag {
+func (b *Banner) RemoveTagID(tag int) {
+	for i, existingTag := range b.TagIDs {
 		if existingTag == tag {
-			b.Tag = append(b.Tag[:i], b.Tag[i+1:]...)
+			b.TagIDs = append(b.TagIDs[:i], b.TagIDs[i+1:]...)
 			return
 		}
 	}
 }
 
 func (b *Banner) GetFeatures() null.Int {
-	return b.Features
+	return b.FeatureID
 }
 
 func (b *Banner) SetFeatures(features null.Int) {
-	b.Features = features
+	b.FeatureID = features
 }
 
 func (b *Banner) GetIsActive() bool {
