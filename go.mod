@@ -11,7 +11,6 @@ require (
 	github.com/jackc/pgx/v4 v4.18.2
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/lib/pq v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/takt-corp/fx-logrus v1.0.1

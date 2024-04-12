@@ -20,7 +20,6 @@ func NewRouter(
 	r := chi.NewRouter()
 
 	r.Get("/ping", api.PingHandler)
-
 	r.Post("/login", loginHandler.Login)
 
 	r.Route("/banner", func(r chi.Router) {
