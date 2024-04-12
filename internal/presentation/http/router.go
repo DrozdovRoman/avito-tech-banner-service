@@ -15,10 +15,13 @@ type Router struct {
 func NewRouter(
 	config *configuration.Configuration,
 	bannerHandler *client.BannerHandler,
+	loginHandler *api.LoginHandler,
 ) *Router {
 	r := chi.NewRouter()
 
 	r.Get("/ping", api.PingHandler)
+
+	r.Post("/login", loginHandler.Login)
 
 	r.Route("/banner", func(r chi.Router) {
 		r.Get("/{id}", bannerHandler.GetBannerByID)

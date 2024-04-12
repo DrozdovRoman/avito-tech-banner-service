@@ -8,6 +8,7 @@ import (
 
 type Configuration struct {
 	ApiExternalURL string `json:"api_external_url" split_words:"true" required:"true"`
+	SecretKey      string `json:"secret_key" split_words:"true" required:"true"`
 
 	Postgres PostgresConfiguration `json:"postgres" required:"true"`
 	HTTP     HTTPConfiguration     `json:"http" required:"true"`
