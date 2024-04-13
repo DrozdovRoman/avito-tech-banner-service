@@ -11,6 +11,7 @@ type Configuration struct {
 	SecretKey      string `json:"secret_key" split_words:"true" required:"true"`
 
 	Postgres PostgresConfiguration `json:"postgres" required:"true"`
+	Cache    CacheConfiguration    `json:"cache" required:"true"`
 	HTTP     HTTPConfiguration     `json:"http" required:"true"`
 }
 
