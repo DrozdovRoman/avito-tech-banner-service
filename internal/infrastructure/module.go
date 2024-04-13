@@ -8,6 +8,7 @@ import (
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db/postgres"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db/repository"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db/transaction"
 	gocache "github.com/patrickmn/go-cache"
 	"go.uber.org/fx"
 	"log"
@@ -20,6 +21,11 @@ var Module = fx.Options(
 		// cache
 		func(cfg *configuration.Configuration) cache.Cache {
 			return gocache.New(cfg.Cache.Expiration, cfg.Cache.Cleanup)
+		},
+
+		// transaction
+		func(db db.Client) db.TxManager {
+			return transaction.NewTransactionManager(db.DB())
 		},
 
 		// db
