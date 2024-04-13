@@ -20,7 +20,7 @@ func New(ctx context.Context, config *configuration.Configuration) (db.Client, e
 		config.Postgres.Password,
 		config.Postgres.Host,
 		config.Postgres.Port,
-		config.Postgres.DBName,
+		config.Postgres.DB,
 	)
 	dbc, err := pgxpool.Connect(ctx, dataSource)
 
