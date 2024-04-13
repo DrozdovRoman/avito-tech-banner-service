@@ -124,9 +124,30 @@ func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Con
 	return result, nil
 }
 
-func (b *BannerRepository) Add(banner banner.Banner) error {
-	_ = banner
-	return nil
+func (b *BannerRepository) Add(banner *banner.Banner) (int, error) {
+	builderInsertBanner := sq.Insert(tableBanner).
+		Columns(colIsActive, colContent, colFKFeatureID, colUpdatedAt, colCreatedAt).
+		Values(banner.IsActive, banner.Content, banner.FeatureID, banner.UpdatedAt, banner.CreatedAt).
+		Suffix("RETURNING " + colId).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builderInsertBanner.ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("failed to build insert SQL query: %v", err)
+	}
+
+	q := db.Query{
+		Name:     "banner_repository.Insert",
+		QueryRaw: sql,
+	}
+
+	var NewID int
+	err = b.db.DB().QueryRowContext(context.Background(), q, args...).Scan(&NewID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to scan row: %v", err)
+	}
+
+	return NewID, nil
 }
 
 func (b *BannerRepository) Update(banner banner.Banner) error {
