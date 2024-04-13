@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api"
 	client "github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/client/v1"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/middlewares"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/fx"
 )
@@ -12,8 +13,13 @@ var Module = fx.Options(
 	fx.Provide(
 		NewHttpServer,
 		NewRouter,
+
+		// handlers
 		api.NewLoginHandler,
-		client.NewBannerHandler,
+		client.NewUserBannerHandler,
+
+		// middlewares
+		middlewares.NewAuthMiddleware,
 	),
 
 	fx.Invoke(

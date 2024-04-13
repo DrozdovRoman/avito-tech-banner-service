@@ -1,36 +1,44 @@
 package v1
 
 import (
-	"encoding/json"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/service"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 )
 
-type BannerHandler struct {
+type UserBannerHandler struct {
 	bannerService service.BannerService
 }
 
-func NewBannerHandler(bannerService *service.BannerService) *BannerHandler {
-	return &BannerHandler{bannerService: *bannerService}
+func NewUserBannerHandler(bannerService *service.BannerService) *UserBannerHandler {
+	return &UserBannerHandler{bannerService: *bannerService}
 }
 
-func (h *BannerHandler) GetBannerByID(w http.ResponseWriter, r *http.Request) {
+func (h *UserBannerHandler) FetchActiveUserBannerContent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+	var featureID, tagID int
+	var err error
+
+	tagID, err = strconv.Atoi(r.URL.Query().Get("tag_id"))
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	banner, err := h.bannerService.GetByID(ctx, id)
+	featureID, err = strconv.Atoi(r.URL.Query().Get("feature_id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	useLastRevision := r.URL.Query().Get("use_last_revision") == "true"
+
+	content, err := h.bannerService.GetUserBannerActiveContent(ctx, tagID, featureID, useLastRevision)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(banner)
+	w.Write(content)
 }

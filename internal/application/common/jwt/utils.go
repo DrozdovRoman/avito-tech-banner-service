@@ -21,7 +21,7 @@ func (j *JWTUtils) GenerateToken(username string, isAdmin bool) (string, error) 
 		Username: username,
 		Admin:    isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(168 * time.Hour)),
 			Issuer:    "bannerService",
 		},
 	}
