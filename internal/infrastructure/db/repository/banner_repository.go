@@ -116,7 +116,7 @@ func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Con
 	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(&result)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return json.RawMessage{}, fmt.Errorf("banner with Tags %d and Feature %d not found", tagID, featureID)
+			return json.RawMessage{}, banner.ErrBannerNotFound
 		}
 		return json.RawMessage{}, fmt.Errorf("failed to scan row: %v", err)
 	}
