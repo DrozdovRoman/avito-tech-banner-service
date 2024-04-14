@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/service"
@@ -25,13 +24,13 @@ func (h *UserBannerHandler) FetchActiveUserBannerContent(w http.ResponseWriter, 
 
 	tagID, err = strconv.Atoi(r.URL.Query().Get("tag_id"))
 	if err != nil {
-		h.respondWithError(w, "tag_id is required and must be a numeric value.", http.StatusBadRequest)
+		http.Error(w, "tag_id is required and must be a numeric value.", http.StatusBadRequest)
 		return
 	}
 
 	featureID, err = strconv.Atoi(r.URL.Query().Get("feature_id"))
 	if err != nil {
-		h.respondWithError(w, "feature_id is required and must be a numeric value.", http.StatusBadRequest)
+		http.Error(w, "feature_id is required and must be a numeric value.", http.StatusBadRequest)
 		return
 	}
 
@@ -40,7 +39,7 @@ func (h *UserBannerHandler) FetchActiveUserBannerContent(w http.ResponseWriter, 
 	content, err := h.bannerService.GetUserBannerActiveContent(ctx, tagID, featureID, useLastRevision)
 	if err != nil {
 		if errors.Is(err, banner.ErrBannerNotFound) {
-			h.respondWithError(w, "The specified banner does not exist.", http.StatusNotFound)
+			http.Error(w, "The specified banner does not exist.", http.StatusNotFound)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -49,12 +48,4 @@ func (h *UserBannerHandler) FetchActiveUserBannerContent(w http.ResponseWriter, 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(fmt.Sprintf(`"%s"`, content)))
-}
-
-func (h *UserBannerHandler) respondWithError(w http.ResponseWriter, message string, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-
-	errorResponse := map[string]string{"error": message}
-	json.NewEncoder(w).Encode(errorResponse)
 }

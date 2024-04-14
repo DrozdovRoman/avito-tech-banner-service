@@ -40,8 +40,44 @@ func NewBannerRepository(client db.Client) banner.Repository {
 	return &BannerRepository{db: client}
 }
 
-func (b *BannerRepository) GetAll() ([]banner.Banner, error) {
-	return nil, nil
+func (b *BannerRepository) GetBanners(ctx context.Context, tagID, featureID, limit, offset int) ([]banner.Banner, error) {
+	builderSelectBanners := sq.Select(
+		"b."+colId, "b."+colIsActive, "b."+colContent, "b."+colFKFeatureID, "b."+colCreatedAt, "b."+colUpdatedAt,
+		fmt.Sprintf("COALESCE(array_agg(bft.tag_id) FILTER (WHERE bft.tag_id IS NOT NULL), '{}') AS tag_ids")).
+		From(fmt.Sprintf("%s AS b", tableBanner)).
+		LeftJoin(fmt.Sprintf("%s AS bft ON b.%s = bft.%s", tableBannerFeatureTag, colId, colFKBannerID)).
+		GroupBy(fmt.Sprintf("b.%s", colId)).
+		PlaceholderFormat(sq.Dollar)
+
+	if featureID != 0 {
+		builderSelectBanners = builderSelectBanners.Where(sq.Eq{"b.feature_id": featureID})
+	}
+
+	if tagID != 0 {
+		builderSelectBanners = builderSelectBanners.Where(sq.Eq{"bft.tag_id": tagID})
+	}
+
+	builderSelectBanners = builderSelectBanners.
+		Limit(uint64(limit)).
+		Offset(uint64(offset))
+
+	query, args, err := builderSelectBanners.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build insert SQL query: %v", err)
+	}
+
+	q := db.Query{
+		Name:     "banner_repository.GetBanners",
+		QueryRaw: query,
+	}
+
+	var banners []banner.Banner
+	err = b.db.DB().ScanAllContext(ctx, &banners, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	return banners, nil
 }
 
 func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Context, tagID int, featureID int) (json.RawMessage, error) {
@@ -105,14 +141,10 @@ func (b *BannerRepository) AddBanner(ctx context.Context, banner *banner.Banner)
 		return 0, fmt.Errorf("failed to scan row: %v", err)
 	}
 
-	if len(banner.TagIDs) > 0 {
-		if banner.FeatureID.Valid { // Only proceed if the FeatureID is not NULL
-			err = b.addBannerFeatureTags(ctx, newID, int(banner.FeatureID.Int64), banner.TagIDs)
-			if err != nil {
-				return 0, fmt.Errorf("failed to add banner tags: %v", err)
-			}
-		} else {
-			return 0, fmt.Errorf("feature ID is null")
+	if len(banner.TagIDs) > 0 { // Only proceed if the FeatureID is not NULL
+		err = b.addBannerFeatureTags(ctx, newID, banner.FeatureID, banner.TagIDs)
+		if err != nil {
+			return 0, fmt.Errorf("failed to add banner tags: %v", err)
 		}
 	}
 

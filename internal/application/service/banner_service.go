@@ -38,6 +38,10 @@ func (b *BannerService) GetUserBannerActiveContent(ctx context.Context, tagID, f
 	return bannerContent, nil
 }
 
+func (b *BannerService) GetBanners(ctx context.Context, tagID, featureID, limit, offset int) ([]banner.Banner, error) {
+	return b.bannerRepo.GetBanners(ctx, tagID, featureID, limit, offset)
+}
+
 func (b *BannerService) CreateBanner(ctx context.Context, tagIDs []int, featureID int, content string, isActive bool) (int, error) {
 	newBanner, err := banner.NewBanner(tagIDs, featureID, content, isActive)
 	if err != nil {
@@ -61,6 +65,10 @@ func (b *BannerService) CreateBanner(ctx context.Context, tagIDs []int, featureI
 
 	return newID, nil
 }
+
+//func (b *BannerService) DeleteBanner(ctx context.Context, id int) error {
+//	banner, err := b.bannerRepo.GetByID(ctx, id)
+//}
 
 func (b *BannerService) GetByID(ctx context.Context, id int) (banner.Banner, error) {
 	return banner.Banner{}, nil

@@ -16,12 +16,12 @@ var (
 
 type Banner struct {
 	ID        int             `json:"id"`
-	TagIDs    []int           `json:"tagIDs"`
-	FeatureID null.Int        `json:"featureID"`
+	TagIDs    []int           `json:"tag_ids" db:"tag_ids"`
+	FeatureID int             `json:"feature_id"`
 	Content   json.RawMessage `json:"content"`
-	IsActive  bool            `json:"isActive"`
-	CreatedAt null.Time       `json:"createdAt"`
-	UpdatedAt null.Time       `json:"updatedAt"`
+	IsActive  bool            `json:"is_active"`
+	CreatedAt null.Time       `json:"created_at"`
+	UpdatedAt null.Time       `json:"updated_at"`
 }
 
 func NewBanner(tagIDs []int, featureID int, content string, isActive bool) (*Banner, error) {
@@ -40,7 +40,7 @@ func NewBanner(tagIDs []int, featureID int, content string, isActive bool) (*Ban
 
 	return &Banner{
 		TagIDs:    tagIDs,
-		FeatureID: null.NewInt(int64(featureID), true),
+		FeatureID: featureID,
 		Content:   bannerContent,
 		IsActive:  isActive,
 		UpdatedAt: null.TimeFrom(time.Now()),
@@ -83,11 +83,11 @@ func (b *Banner) RemoveTagID(tag int) {
 	}
 }
 
-func (b *Banner) GetFeatures() null.Int {
+func (b *Banner) GetFeatures() int {
 	return b.FeatureID
 }
 
-func (b *Banner) SetFeatures(features null.Int) {
+func (b *Banner) SetFeatures(features int) {
 	b.FeatureID = features
 }
 
