@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
@@ -12,12 +11,6 @@ import (
 )
 
 const (
-	tableTag = "tag"
-	colTagID = "id"
-
-	tableFeature = "feature"
-	colFeatureID = "id"
-
 	tableBanner    = "banner"
 	colId          = "id"
 	colIsActive    = "is_active"
@@ -121,7 +114,7 @@ func (b *BannerRepository) GetBanners(ctx context.Context, tagID, featureID, lim
 	return banners, nil
 }
 
-func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Context, tagID int, featureID int) (json.RawMessage, error) {
+func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Context, tagID int, featureID int) (string, error) {
 
 	builderSelectActiveBannerContentByTagAndFeature := sq.Select(tableBanner + "." + colContent).
 		From(tableBanner).
@@ -138,7 +131,7 @@ func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Con
 	query, args, err := builderSelectActiveBannerContentByTagAndFeature.ToSql()
 
 	if err != nil {
-		return json.RawMessage{}, fmt.Errorf("failed to build query: %v", err)
+		return "", fmt.Errorf("failed to build query: %v", err)
 	}
 
 	q := db.Query{
@@ -146,14 +139,14 @@ func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Con
 		QueryRaw: query,
 	}
 
-	var result json.RawMessage
+	var result string
 
 	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(&result)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return json.RawMessage{}, banner.ErrBannerNotFound
+			return "", banner.ErrBannerNotFound
 		}
-		return json.RawMessage{}, fmt.Errorf("failed to scan row: %v", err)
+		return "", fmt.Errorf("failed to scan row: %v", err)
 	}
 
 	return result, nil
@@ -182,7 +175,7 @@ func (b *BannerRepository) AddBanner(ctx context.Context, banner *banner.Banner)
 		return 0, fmt.Errorf("failed to scan row: %v", err)
 	}
 
-	if len(banner.TagIDs) > 0 { // Only proceed if the FeatureID is not NULL
+	if len(banner.TagIDs) > 0 {
 		err = b.addBannerFeatureTags(ctx, newID, banner.FeatureID, banner.TagIDs)
 		if err != nil {
 			return 0, fmt.Errorf("failed to add banner tags: %v", err)
@@ -319,7 +312,6 @@ func (b *BannerRepository) DeleteBanner(ctx context.Context, id int) error {
 }
 
 func (b *BannerRepository) BannerExists(ctx context.Context, id int) (bool, error) {
-	var exist bool
 	query, args, err := sq.Select(colId).
 		From(tableBanner).
 		Where(sq.Eq{colId: id}).
@@ -334,13 +326,13 @@ func (b *BannerRepository) BannerExists(ctx context.Context, id int) (bool, erro
 		QueryRaw: query,
 	}
 
-	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(&exist)
+	var result int
+	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(&result)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to scan row: %v", err)
 	}
-
-	return exist, nil
+	return true, nil
 }

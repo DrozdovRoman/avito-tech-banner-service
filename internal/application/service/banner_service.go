@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,16 +21,16 @@ func NewBannerService(
 	return &BannerService{bannerRepo: bannerRepo, cache: cache, txManager: txManager}
 }
 
-func (b *BannerService) GetUserBannerActiveContent(ctx context.Context, tagID, featureID int, useLastVersion bool) (json.RawMessage, error) {
+func (b *BannerService) GetUserBannerActiveContent(ctx context.Context, tagID, featureID int, useLastVersion bool) (string, error) {
 	cacheKey := fmt.Sprintf("banner_%d_%d", featureID, tagID)
 
 	if cachedContent, found := b.cache.Get(cacheKey); !useLastVersion && found {
-		return cachedContent.(json.RawMessage), nil
+		return cachedContent.(string), nil
 	}
 
 	bannerContent, err := b.bannerRepo.GetActiveBannerContentByTagAndFeature(ctx, tagID, featureID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	b.cache.Set(cacheKey, bannerContent, 5*time.Minute)
@@ -76,7 +75,6 @@ func (b *BannerService) DeleteBanner(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
-
 	if !existBanner {
 		return banner.ErrBannerNotFound
 	}
@@ -117,14 +115,14 @@ func (b *BannerService) UpdateBanner(ctx context.Context, id int, tagIDs []int, 
 
 	if content != "" {
 		existingContent := existingBanner.GetContent()
-		contentJson, err := json.Marshal(content)
+		_, err := json.Marshal(content)
 		if err != nil {
 			return err
 		}
 
-		if !bytes.Equal(contentJson, existingContent) {
+		if existingContent != content {
 			fmt.Println("New content is different, updating...")
-			existingBanner.SetContent(contentJson)
+			existingBanner.SetContent(content)
 			changes = true
 		}
 	}

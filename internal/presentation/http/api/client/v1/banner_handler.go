@@ -1,10 +1,11 @@
 package v1
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/service"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/dto/banner_dto"
 	"net/http"
 	"strconv"
 )
@@ -46,6 +47,13 @@ func (h *UserBannerHandler) FetchActiveUserBannerContent(w http.ResponseWriter, 
 		return
 	}
 
+	responses, err := banner_dto.NewContentResponseFromDomain(content)
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(fmt.Sprintf(`"%s"`, content)))
+
+	if err := json.NewEncoder(w).Encode(responses); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
 }

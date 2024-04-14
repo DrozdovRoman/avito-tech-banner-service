@@ -15,13 +15,13 @@ var (
 )
 
 type Banner struct {
-	ID        int             `json:"id"`
-	TagIDs    []int           `json:"tag_ids" db:"tag_ids"`
-	FeatureID int             `json:"feature_id"`
-	Content   json.RawMessage `json:"content"`
-	IsActive  bool            `json:"is_active"`
-	CreatedAt null.Time       `json:"created_at"`
-	UpdatedAt null.Time       `json:"updated_at"`
+	ID        int       `json:"id"`
+	TagIDs    []int     `json:"tag_ids" db:"tag_ids"`
+	FeatureID int       `json:"feature_id"`
+	Content   string    `json:"content"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt null.Time `json:"created_at"`
+	UpdatedAt null.Time `json:"updated_at"`
 }
 
 func NewBanner(tagIDs []int, featureID int, content string, isActive bool) (*Banner, error) {
@@ -33,7 +33,7 @@ func NewBanner(tagIDs []int, featureID int, content string, isActive bool) (*Ban
 		return nil, ErrNoFeatureID
 	}
 
-	bannerContent, err := json.Marshal(content)
+	_, err := json.Marshal(content)
 	if err != nil {
 		return nil, ErrJSONMarshal
 	}
@@ -41,7 +41,7 @@ func NewBanner(tagIDs []int, featureID int, content string, isActive bool) (*Ban
 	return &Banner{
 		TagIDs:    tagIDs,
 		FeatureID: featureID,
-		Content:   bannerContent,
+		Content:   content,
 		IsActive:  isActive,
 		UpdatedAt: null.TimeFrom(time.Now()),
 		CreatedAt: null.TimeFrom(time.Now()),
@@ -53,11 +53,11 @@ func (b *Banner) GetID() int {
 	return b.ID
 }
 
-func (b *Banner) GetContent() json.RawMessage {
+func (b *Banner) GetContent() string {
 	return b.Content
 }
 
-func (b *Banner) SetContent(content json.RawMessage) {
+func (b *Banner) SetContent(content string) {
 	b.Content = content
 }
 

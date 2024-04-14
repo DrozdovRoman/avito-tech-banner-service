@@ -80,28 +80,6 @@ func (h *AdminBannerHandler) GetBanners(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(responses)
 }
 
-func (h *AdminBannerHandler) GetBanner(w http.ResponseWriter, r *http.Request) {
-	bannerID, err := strconv.Atoi(chi.URLParam(r, "banner_id"))
-	if err != nil {
-		http.Error(w, "Invalid banner ID", http.StatusBadRequest)
-		return
-	}
-
-	result, err := h.bannerService.GetBanner(r.Context(), bannerID)
-
-	response, err := banner_dto.NewBannerResponseFromDomain(*result)
-	if err != nil {
-		http.Error(w, "Failed to process content", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
-}
-
 func (h *AdminBannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 	var req banner_dto.CreateBannerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
