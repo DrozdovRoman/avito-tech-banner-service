@@ -9,6 +9,7 @@ import (
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -26,9 +27,9 @@ const (
 	colCreatedAt   = "created_at"
 	colUpdatedAt   = "updated_at"
 
-	tableFeatureTag = "feature_tag"
-	colFKTagID      = "tag_id"
-	colFKBannerID   = "banner_id"
+	tableBannerFeatureTag = "banner_feature_tag"
+	colFKTagID            = "tag_id"
+	colFKBannerID         = "banner_id"
 )
 
 type BannerRepository struct {
@@ -43,60 +44,17 @@ func (b *BannerRepository) GetAll() ([]banner.Banner, error) {
 	return nil, nil
 }
 
-func (b *BannerRepository) GetByID(ctx context.Context, bannerID int) (banner.Banner, error) {
-	return banner.Banner{}, nil
-	//builderSelectByID := sq.Select(
-	//	colId, colIsActive, colContent, colFeatureID, colCreatedAt, colUpdatedAt, fmt.Sprintf(
-	//		"COALESCE(array_agg(bt.%s) FILTER (WHERE bt.%s IS NOT NULL), '{}') AS tag_ids", colTagID, colTagID),
-	//).
-	//	From(tableBanner).
-	//	PlaceholderFormat(sq.Dollar).
-	//	LeftJoin(fmt.Sprintf("%s bt ON %s.%s = bt.%s", tableBannerTag, tableBanner, colId, colBannerID)).
-	//	GroupBy(fmt.Sprintf("%s.%s", tableBanner, colId)).
-	//	Where(sq.Eq{colId: bannerID}).
-	//	Limit(1)
-	//
-	//query, args, err := builderSelectByID.ToSql()
-	//
-	//if err != nil {
-	//	return banner.Banner{}, fmt.Errorf("failed to build query: %v", err)
-	//}
-	//
-	//q := db.Query{
-	//	Name:     "banner_repository.Get",
-	//	QueryRaw: query,
-	//}
-	//
-	//var result banner.Banner
-	//err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(
-	//	&result.ID,
-	//	&result.IsActive,
-	//	&result.Content,
-	//	&result.FeatureID,
-	//	&result.CreatedAt,
-	//	&result.UpdatedAt,
-	//	&result.TagIDs,
-	//)
-	//
-	//if err != nil {
-	//	if errors.Is(err, pgx.ErrNoRows) {
-	//		return banner.Banner{}, fmt.Errorf("banner with ID %d not found", bannerID)
-	//	}
-	//	return banner.Banner{}, fmt.Errorf("failed to scan row: %v", err)
-	//}
-	//
-	//return result, nil
-}
-
 func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Context, tagID int, featureID int) (json.RawMessage, error) {
 
 	builderSelectActiveBannerContentByTagAndFeature := sq.Select(tableBanner + "." + colContent).
 		From(tableBanner).
-		Join(fmt.Sprintf("%s ON %s.%s = %s.%s", tableFeatureTag, tableBanner, colFKFeatureID, tableFeatureTag, colFKFeatureID)).
+		Join(fmt.Sprintf("%s ON %s.%s = %s.%s",
+			tableBannerFeatureTag, tableBanner, colFKFeatureID, tableBannerFeatureTag, colFKFeatureID),
+		).
 		Where(sq.And{
 			sq.Eq{tableBanner + "." + colIsActive: true},
 			sq.Eq{tableBanner + "." + colFKFeatureID: featureID},
-			sq.Eq{tableFeatureTag + "." + colFKTagID: tagID},
+			sq.Eq{tableBannerFeatureTag + "." + colFKTagID: tagID},
 		}).
 		PlaceholderFormat(sq.Dollar)
 
@@ -124,7 +82,7 @@ func (b *BannerRepository) GetActiveBannerContentByTagAndFeature(ctx context.Con
 	return result, nil
 }
 
-func (b *BannerRepository) Add(banner *banner.Banner) (int, error) {
+func (b *BannerRepository) AddBanner(ctx context.Context, banner *banner.Banner) (int, error) {
 	builderInsertBanner := sq.Insert(tableBanner).
 		Columns(colIsActive, colContent, colFKFeatureID, colUpdatedAt, colCreatedAt).
 		Values(banner.IsActive, banner.Content, banner.FeatureID, banner.UpdatedAt, banner.CreatedAt).
@@ -141,40 +99,49 @@ func (b *BannerRepository) Add(banner *banner.Banner) (int, error) {
 		QueryRaw: sql,
 	}
 
-	var NewID int
-	err = b.db.DB().QueryRowContext(context.Background(), q, args...).Scan(&NewID)
+	var newID int
+	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(&newID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to scan row: %v", err)
 	}
 
-	return NewID, nil
+	if len(banner.TagIDs) > 0 {
+		if banner.FeatureID.Valid { // Only proceed if the FeatureID is not NULL
+			err = b.addBannerFeatureTags(ctx, newID, int(banner.FeatureID.Int64), banner.TagIDs)
+			if err != nil {
+				return 0, fmt.Errorf("failed to add banner tags: %v", err)
+			}
+		} else {
+			return 0, fmt.Errorf("feature ID is null")
+		}
+	}
+
+	return newID, nil
 }
 
-func (b *BannerRepository) Update(banner banner.Banner) error {
-	_ = banner
+func (b *BannerRepository) addBannerFeatureTags(ctx context.Context, bannerID int, featureID int, tagIDs []int) error {
+	for _, tagID := range tagIDs {
+		logrus.Info(tagID)
+		sql, args, err := sq.Insert(tableBannerFeatureTag).
+			Columns(colFKBannerID, colFKFeatureID, colFKTagID).
+			Values(bannerID, featureID, tagID).
+			PlaceholderFormat(sq.Dollar).
+			ToSql()
+
+		if err != nil {
+			return fmt.Errorf("failed to build insert tag SQL query: %v", err)
+		}
+
+		query := db.Query{
+			Name:     "insert_tag_association",
+			QueryRaw: sql,
+		}
+
+		_, err = b.db.DB().ExecContext(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("failed to execute insert tag query: %v", err)
+		}
+	}
+
 	return nil
-}
-
-func (b *BannerRepository) Delete(id int) error {
-	_ = id
-	return nil
-}
-
-func (b *BannerRepository) GetByFeatureID(featureID int) ([]banner.Banner, error) {
-	_ = featureID
-	return nil, nil
-}
-
-func (b *BannerRepository) GetActiveByFeatureID(featureID int) ([]banner.Banner, error) {
-	_ = featureID
-	return nil, nil
-}
-
-func (b *BannerRepository) GetActive() ([]banner.Banner, error) {
-	return nil, nil
-}
-
-func (b *BannerRepository) GetActiveByTagID(tagID int) ([]banner.Banner, error) {
-	_ = tagID
-	return nil, nil
 }

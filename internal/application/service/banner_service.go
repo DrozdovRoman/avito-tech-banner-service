@@ -6,16 +6,19 @@ import (
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/cache"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db"
 	"time"
 )
 
 type BannerService struct {
 	bannerRepo banner.Repository
 	cache      cache.Cache
+	txManager  db.TxManager
 }
 
-func NewBannerService(bannerRepo banner.Repository, cache cache.Cache) *BannerService {
-	return &BannerService{bannerRepo: bannerRepo, cache: cache}
+func NewBannerService(
+	bannerRepo banner.Repository, cache cache.Cache, txManager db.TxManager) *BannerService {
+	return &BannerService{bannerRepo: bannerRepo, cache: cache, txManager: txManager}
 }
 
 func (b *BannerService) GetUserBannerActiveContent(ctx context.Context, tagID, featureID int, useLastVersion bool) (json.RawMessage, error) {
@@ -35,10 +38,34 @@ func (b *BannerService) GetUserBannerActiveContent(ctx context.Context, tagID, f
 	return bannerContent, nil
 }
 
+func (b *BannerService) CreateBanner(ctx context.Context, tagIDs []int, featureID int, content string, isActive bool) (int, error) {
+	newBanner, err := banner.NewBanner(tagIDs, featureID, content, isActive)
+	if err != nil {
+		return 0, err
+	}
+
+	var newID int
+	err = b.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		var errTx error
+		newID, errTx = b.bannerRepo.AddBanner(txCtx, newBanner)
+		if errTx != nil {
+			return fmt.Errorf("failed to add banner: %w", errTx)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, fmt.Errorf("transaction failed: %w", err)
+	}
+
+	return newID, nil
+}
+
 func (b *BannerService) GetByID(ctx context.Context, id int) (banner.Banner, error) {
-	return b.bannerRepo.GetByID(ctx, id)
+	return banner.Banner{}, nil
 }
 
 func (b *BannerService) GetAll() ([]banner.Banner, error) {
-	return b.bannerRepo.GetAll()
+	return nil, nil
 }

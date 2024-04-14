@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api"
+	admin "github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/admin/v1"
 	client "github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/client/v1"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/middlewares"
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ var Module = fx.Options(
 		// handlers
 		api.NewLoginHandler,
 		client.NewUserBannerHandler,
+		admin.NewAdminBannerHandler,
 
 		// middlewares
 		middlewares.NewAuthMiddleware,

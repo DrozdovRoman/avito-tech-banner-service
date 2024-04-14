@@ -29,7 +29,7 @@ func NewRouter(
 	r.With(authMiddleware.Handler).Get("/user_banner", userBannerHandler.FetchActiveUserBannerContent)
 
 	r.Route("/banner", func(r chi.Router) {
-		r.Post("/", adminBannerHandler.CreateBanner)
+		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Post("/", adminBannerHandler.CreateBanner)
 	})
 
 	r.Get("/swagger/*", httpSwagger.Handler(
