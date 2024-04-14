@@ -66,14 +66,27 @@ func (b *BannerService) CreateBanner(ctx context.Context, tagIDs []int, featureI
 	return newID, nil
 }
 
-//func (b *BannerService) DeleteBanner(ctx context.Context, id int) error {
-//	banner, err := b.bannerRepo.GetByID(ctx, id)
-//}
+func (b *BannerService) DeleteBanner(ctx context.Context, id int) error {
+	existBanner, err := b.bannerRepo.BannerExists(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if !existBanner {
+		return banner.ErrBannerNotFound
+	}
+
+	err = b.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		return b.bannerRepo.DeleteBanner(txCtx, id)
+	})
+
+	if err != nil {
+		return fmt.Errorf("transaction failed: %w", err)
+	}
+
+	return nil
+}
 
 func (b *BannerService) GetByID(ctx context.Context, id int) (banner.Banner, error) {
 	return banner.Banner{}, nil
-}
-
-func (b *BannerService) GetAll() ([]banner.Banner, error) {
-	return nil, nil
 }

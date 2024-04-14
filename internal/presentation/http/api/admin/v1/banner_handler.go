@@ -7,13 +7,17 @@ import (
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/service"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/dto"
-	"github.com/sirupsen/logrus"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 )
 
 type AdminBannerHandler struct {
 	bannerService service.BannerService
+}
+
+func NewAdminBannerHandler(bannerService *service.BannerService) *AdminBannerHandler {
+	return &AdminBannerHandler{bannerService: *bannerService}
 }
 
 func (h *AdminBannerHandler) GetBanners(w http.ResponseWriter, r *http.Request) {
@@ -80,18 +84,12 @@ func (h *AdminBannerHandler) GetBanners(w http.ResponseWriter, r *http.Request) 
 	w.Write(response)
 }
 
-func NewAdminBannerHandler(bannerService *service.BannerService) *AdminBannerHandler {
-	return &AdminBannerHandler{bannerService: *bannerService}
-}
-
 func (h *AdminBannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateBannerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("error reading request body: %v", err), http.StatusBadRequest)
 		return
 	}
-
-	logrus.Info(req)
 
 	ctx := r.Context()
 	bannerID, err := h.bannerService.CreateBanner(ctx, req.TagIDs, req.FeatureID, req.Content, req.IsActive)
@@ -108,18 +106,18 @@ func (h *AdminBannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request
 }
 
 func (h *AdminBannerHandler) DeleteBanner(w http.ResponseWriter, r *http.Request) {
-	//bannerIDStr := chi.URLParam(r, "banner_id")
-	//bannerID, err := strconv.Atoi(bannerIDStr)
-	//if err != nil {
-	//	http.Error(w, "invalid banner ID", http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//err = h.bannerService.DeleteBanner(r.Context(), bannerID)
-	//if err != nil {
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
+	ctx := r.Context()
 
+	bannerID, err := strconv.Atoi(chi.URLParam(r, "banner_id"))
+	if err != nil {
+		http.Error(w, "invalid banner ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.bannerService.DeleteBanner(ctx, bannerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -177,3 +177,53 @@ func (b *BannerRepository) addBannerFeatureTags(ctx context.Context, bannerID in
 
 	return nil
 }
+
+func (b *BannerRepository) DeleteBanner(ctx context.Context, id int) error {
+	builderDeleteBannner := sq.Delete(tableBanner).
+		Where(sq.Eq{colId: id}).
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builderDeleteBannner.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build insert SQL query: %v", err)
+	}
+
+	q := db.Query{
+		Name:     "banner_repository.Delete",
+		QueryRaw: query,
+	}
+
+	_, err = b.db.DB().ExecContext(ctx, q, args...)
+	if err != nil {
+		return fmt.Errorf("failed to execute insert query: %v", err)
+	}
+
+	return nil
+}
+
+func (b *BannerRepository) BannerExists(ctx context.Context, id int) (bool, error) {
+	var exist bool
+	query, args, err := sq.Select(colId).
+		From(tableBanner).
+		Where(sq.Eq{colId: id}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return false, fmt.Errorf("failed to build query: %v", err)
+	}
+
+	q := db.Query{
+		Name:     "banner_repository.Exists",
+		QueryRaw: query,
+	}
+
+	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(&exist)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to scan row: %v", err)
+	}
+
+	return exist, nil
+}
