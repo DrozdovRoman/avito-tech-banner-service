@@ -2,7 +2,7 @@ include .env
 
 LOCAL_BIN := $(CURDIR)/bin
 LOCAL_MIGRATION_DIR := $(MIGRATION_DIR)
-LOCAL_MIGRATION_DSN := "host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) dbname=$(POSTGRES_DB) user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD)"
+LOCAL_MIGRATION_DSN := "host=localhost port=$(POSTGRES_PORT) dbname=$(POSTGRES_DB) user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD)"
 
 build:
 	docker-compose build
