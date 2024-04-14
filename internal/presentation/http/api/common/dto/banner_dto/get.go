@@ -20,7 +20,7 @@ func NewBannerResponseFromDomain(b banner.Banner) (*BannerResponse, error) {
 	return &BannerResponse{
 		ID:        b.ID,
 		IsActive:  b.IsActive,
-		Content:   b.Content, // Store as a JSON string
+		Content:   b.Content,
 		FeatureID: b.FeatureID,
 		TagIDs:    b.TagIDs,
 		CreatedAt: b.CreatedAt,
@@ -34,7 +34,7 @@ func NewBannerResponsesFromDomain(banners []banner.Banner) ([]BannerResponse, er
 		responses[i] = BannerResponse{
 			ID:        b.ID,
 			IsActive:  b.IsActive,
-			Content:   b.Content, // store JSON string
+			Content:   b.Content,
 			FeatureID: b.FeatureID,
 			TagIDs:    b.TagIDs,
 			CreatedAt: b.CreatedAt,

@@ -7,7 +7,6 @@ import (
 	client "github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/client/v1"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/middlewares"
 	"github.com/go-chi/chi/v5"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Router struct {
@@ -35,10 +34,6 @@ func NewRouter(
 		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Delete("/{banner_id}", adminBannerHandler.DeleteBanner)
 		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Patch("/{banner_id}", adminBannerHandler.UpdateBanner)
 	})
-
-	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(config.ApiExternalURL+"/swagger/doc.json"),
-	))
 
 	return &Router{r}
 }
