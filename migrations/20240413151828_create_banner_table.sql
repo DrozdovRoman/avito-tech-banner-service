@@ -1,12 +1,11 @@
 -- +goose Up
 CREATE TABLE banner (
     id SERIAL PRIMARY KEY,
-    is_active BOOLEAN NOT NULL,
-    feature_id INT UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    feature_id INTEGER REFERENCES feature(id) ON DELETE CASCADE NOT NULL,
     content JSONB,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
-    updated_at TIMESTAMP WITHOUT TIME ZONE,
-    FOREIGN KEY (feature_id) REFERENCES feature(id)
+    updated_at TIMESTAMP WITHOUT TIME ZONE
 );
 
 -- +goose Down
