@@ -32,6 +32,7 @@ func NewRouter(
 		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Get("/", adminBannerHandler.GetBanners)
 		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Post("/", adminBannerHandler.CreateBanner)
 		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Delete("/{banner_id}", adminBannerHandler.DeleteBanner)
+		r.With(authMiddleware.Handler, authMiddleware.AdminOnly).Patch("/{banner_id}", adminBannerHandler.UpdateBanner)
 	})
 
 	r.Get("/swagger/*", httpSwagger.Handler(

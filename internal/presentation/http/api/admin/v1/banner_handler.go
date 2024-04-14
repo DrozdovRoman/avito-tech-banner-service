@@ -121,3 +121,35 @@ func (h *AdminBannerHandler) DeleteBanner(w http.ResponseWriter, r *http.Request
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *AdminBannerHandler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	bannerID, err := strconv.Atoi(chi.URLParam(r, "banner_id"))
+	if err != nil {
+		http.Error(w, "invalid banner ID", http.StatusBadRequest)
+		return
+	}
+
+	var req dto.UpdateBannerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("error reading request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	err = h.bannerService.UpdateBanner(ctx, bannerID, req.TagIDs, req.FeatureID, req.Content, req.IsActive)
+	if err != nil {
+		if errors.Is(err, banner.ErrNoFeatureID) || errors.Is(err, banner.ErrNoTagIDs) || errors.Is(err, banner.ErrJSONMarshal) {
+			http.Error(w, fmt.Sprintf("validation error: %v", err), http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, banner.ErrBannerNotFound) {
+			http.Error(w, fmt.Sprintf("banner not found: %v", err), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
+}

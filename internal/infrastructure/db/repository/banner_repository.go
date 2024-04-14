@@ -40,6 +40,47 @@ func NewBannerRepository(client db.Client) banner.Repository {
 	return &BannerRepository{db: client}
 }
 
+func (b *BannerRepository) GetBanner(ctx context.Context, id int) (*banner.Banner, error) {
+	builderSelectBanner := sq.Select(
+		"b."+colId, "b."+colIsActive, "b."+colContent, "b."+colFKFeatureID, "b."+colCreatedAt, "b."+colUpdatedAt,
+		fmt.Sprintf("COALESCE(array_agg(bft.tag_id) FILTER (WHERE bft.tag_id IS NOT NULL), '{}') AS tag_ids")).
+		From(fmt.Sprintf("%s AS b", tableBanner)).
+		LeftJoin(fmt.Sprintf("%s AS bft ON b.%s = bft.%s", tableBannerFeatureTag, colId, colFKBannerID)).
+		GroupBy(fmt.Sprintf("b.%s", colId)).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builderSelectBanner.Where(sq.Eq{colId: id}).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %v", err)
+	}
+
+	q := db.Query{
+		Name:     "banner_repository.GetBanner",
+		QueryRaw: sql,
+	}
+
+	var result banner.Banner
+
+	err = b.db.DB().QueryRowContext(ctx, q, args...).Scan(
+		&result.ID,
+		&result.IsActive,
+		&result.Content,
+		&result.FeatureID,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.TagIDs,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, banner.ErrBannerNotFound
+		}
+		return nil, fmt.Errorf("failed to scan row: %v", err)
+	}
+
+	return &result, nil
+}
+
 func (b *BannerRepository) GetBanners(ctx context.Context, tagID, featureID, limit, offset int) ([]banner.Banner, error) {
 	builderSelectBanners := sq.Select(
 		"b."+colId, "b."+colIsActive, "b."+colContent, "b."+colFKFeatureID, "b."+colCreatedAt, "b."+colUpdatedAt,
@@ -149,6 +190,83 @@ func (b *BannerRepository) AddBanner(ctx context.Context, banner *banner.Banner)
 	}
 
 	return newID, nil
+}
+
+func (b *BannerRepository) UpdateBanner(ctx context.Context, banner *banner.Banner) error {
+	builderUpdate := sq.Update(tableBanner).
+		Set(colIsActive, banner.IsActive).
+		Set(colContent, banner.Content).
+		Set(colFKFeatureID, banner.FeatureID).
+		Set(colUpdatedAt, banner.UpdatedAt).
+		Where(sq.Eq{colId: banner.ID}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := builderUpdate.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build insert SQL query: %v", err)
+	}
+
+	q := db.Query{
+		Name:     "banner_repository.Update",
+		QueryRaw: sql,
+	}
+
+	res, err := b.db.DB().ExecContext(ctx, q, args...)
+	if err != nil {
+		return fmt.Errorf("failed to update banner: %v tag: %v", err, res)
+	}
+
+	err = b.updateBannerFeatureTag(ctx, banner)
+	if err != nil {
+		return fmt.Errorf("failed to update banner feature tag: %v", err)
+	}
+
+	return nil
+}
+
+func (b *BannerRepository) updateBannerFeatureTag(ctx context.Context, banner *banner.Banner) error {
+	builderDelete := sq.Delete(tableBannerFeatureTag).
+		Where(sq.Eq{colFKBannerID: banner.ID}).
+		PlaceholderFormat(sq.Dollar)
+
+	sqlDelete, argsDelete, err := builderDelete.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build delete SQL query: %v", err)
+	}
+
+	qDelete := db.Query{
+		Name:     "banner_repository.DeleteBannerFeatureTag",
+		QueryRaw: sqlDelete,
+	}
+
+	_, err = b.db.DB().ExecContext(ctx, qDelete, argsDelete...)
+	if err != nil {
+		return fmt.Errorf("failed to delete banner feature tag: %v", err)
+	}
+
+	for _, tagID := range banner.TagIDs {
+		builderInsert := sq.Insert(tableBannerFeatureTag).
+			Columns(colFKFeatureID, colFKTagID, colFKBannerID).
+			Values(banner.FeatureID, tagID, banner.ID).
+			PlaceholderFormat(sq.Dollar)
+
+		sqlInsert, argsInsert, err := builderInsert.ToSql()
+		if err != nil {
+			return fmt.Errorf("failed to build insert SQL query: %v", err)
+		}
+
+		qInsert := db.Query{
+			Name:     "banner_repository.InsertBannerFeatureTag",
+			QueryRaw: sqlInsert,
+		}
+
+		_, err = b.db.DB().ExecContext(ctx, qInsert, argsInsert...)
+		if err != nil {
+			return fmt.Errorf("failed to insert banner feature tag: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (b *BannerRepository) addBannerFeatureTags(ctx context.Context, bannerID int, featureID int, tagIDs []int) error {

@@ -87,6 +87,49 @@ func (b *BannerService) DeleteBanner(ctx context.Context, id int) error {
 	return nil
 }
 
-func (b *BannerService) GetByID(ctx context.Context, id int) (banner.Banner, error) {
-	return banner.Banner{}, nil
+func (b *BannerService) UpdateBanner(ctx context.Context, id int, tagIDs []int, featureID int, content string, isActive bool) error {
+	existingBanner, err := b.bannerRepo.GetBanner(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	var changes bool
+
+	if tagIDs != nil && len(tagIDs) > 0 {
+		existingBanner.SetTagIDs(tagIDs)
+		changes = true
+	}
+
+	if featureID != 0 && featureID != existingBanner.GetFeature() {
+		existingBanner.SetFeature(featureID)
+		changes = true
+	}
+
+	if isActive != existingBanner.GetIsActive() {
+		existingBanner.SetIsActive(isActive)
+		changes = true
+	}
+
+	if content != "" {
+		if !json.Valid([]byte(content)) {
+			return fmt.Errorf("content is not valid JSON")
+		}
+		existingBanner.SetContent(json.RawMessage(content))
+		changes = true
+	}
+
+	if !changes {
+		return nil
+	}
+
+	err = b.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		return b.bannerRepo.UpdateBanner(txCtx, existingBanner)
+
+	})
+
+	if err != nil {
+		return fmt.Errorf("transaction failed: %w", err)
+	}
+
+	return nil
 }
