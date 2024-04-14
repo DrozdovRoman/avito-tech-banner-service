@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -40,6 +41,10 @@ func (b *BannerService) GetUserBannerActiveContent(ctx context.Context, tagID, f
 
 func (b *BannerService) GetBanners(ctx context.Context, tagID, featureID, limit, offset int) ([]banner.Banner, error) {
 	return b.bannerRepo.GetBanners(ctx, tagID, featureID, limit, offset)
+}
+
+func (b *BannerService) GetBanner(ctx context.Context, id int) (*banner.Banner, error) {
+	return b.bannerRepo.GetBanner(ctx, id)
 }
 
 func (b *BannerService) CreateBanner(ctx context.Context, tagIDs []int, featureID int, content string, isActive bool) (int, error) {
@@ -111,11 +116,17 @@ func (b *BannerService) UpdateBanner(ctx context.Context, id int, tagIDs []int, 
 	}
 
 	if content != "" {
-		if !json.Valid([]byte(content)) {
-			return fmt.Errorf("content is not valid JSON")
+		existingContent := existingBanner.GetContent()
+		contentJson, err := json.Marshal(content)
+		if err != nil {
+			return err
 		}
-		existingBanner.SetContent(json.RawMessage(content))
-		changes = true
+
+		if !bytes.Equal(contentJson, existingContent) {
+			fmt.Println("New content is different, updating...")
+			existingBanner.SetContent(contentJson)
+			changes = true
+		}
 	}
 
 	if !changes {
@@ -124,7 +135,6 @@ func (b *BannerService) UpdateBanner(ctx context.Context, id int, tagIDs []int, 
 
 	err = b.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		return b.bannerRepo.UpdateBanner(txCtx, existingBanner)
-
 	})
 
 	if err != nil {

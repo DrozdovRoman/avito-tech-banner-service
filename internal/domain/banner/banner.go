@@ -65,30 +65,16 @@ func (b *Banner) GetTagIDs() []int {
 	return b.TagIDs
 }
 
-func (b *Banner) AddTagID(tag int) {
-	for _, existingTag := range b.TagIDs {
-		if existingTag == tag {
-			return
-		}
-	}
-	b.TagIDs = append(b.TagIDs, tag)
+func (b *Banner) SetTagIDs(tagIDs []int) {
+	b.TagIDs = tagIDs
 }
 
-func (b *Banner) RemoveTagID(tag int) {
-	for i, existingTag := range b.TagIDs {
-		if existingTag == tag {
-			b.TagIDs = append(b.TagIDs[:i], b.TagIDs[i+1:]...)
-			return
-		}
-	}
-}
-
-func (b *Banner) GetFeatures() int {
+func (b *Banner) GetFeature() int {
 	return b.FeatureID
 }
 
-func (b *Banner) SetFeatures(features int) {
-	b.FeatureID = features
+func (b *Banner) SetFeature(feature int) {
+	b.FeatureID = feature
 }
 
 func (b *Banner) GetIsActive() bool {
@@ -97,6 +83,10 @@ func (b *Banner) GetIsActive() bool {
 
 func (b *Banner) SetIsActive(isActive bool) {
 	b.IsActive = isActive
+}
+
+func (b *Banner) SetUpdatedAt(updatedAt time.Time) {
+	b.UpdatedAt = null.TimeFrom(updatedAt)
 }
 
 func (b *Banner) GetType() string {

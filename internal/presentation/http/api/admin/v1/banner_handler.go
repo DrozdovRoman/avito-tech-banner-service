@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/application/service"
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/domain/banner"
-	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/dto"
+	"github.com/DrozdovRoman/avito-tech-banner-service/internal/presentation/http/api/common/dto/banner_dto"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
@@ -69,30 +69,52 @@ func (h *AdminBannerHandler) GetBanners(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if len(banners) == 0 {
-		banners = []banner.Banner{} // Заменяем на пустой массив
-	}
-
-	response, err := json.Marshal(banners)
+	responses, err := banner_dto.NewBannerResponsesFromDomain(banners)
 	if err != nil {
-		http.Error(w, "Failed to serialize banners", http.StatusInternalServerError)
+		http.Error(w, "Failed to process banners", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	json.NewEncoder(w).Encode(responses)
+}
+
+func (h *AdminBannerHandler) GetBanner(w http.ResponseWriter, r *http.Request) {
+	bannerID, err := strconv.Atoi(chi.URLParam(r, "banner_id"))
+	if err != nil {
+		http.Error(w, "Invalid banner ID", http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.bannerService.GetBanner(r.Context(), bannerID)
+
+	response, err := banner_dto.NewBannerResponseFromDomain(*result)
+	if err != nil {
+		http.Error(w, "Failed to process content", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *AdminBannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
-	var req dto.CreateBannerRequest
+	var req banner_dto.CreateBannerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("error reading request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	ctx := r.Context()
-	bannerID, err := h.bannerService.CreateBanner(ctx, req.TagIDs, req.FeatureID, req.Content, req.IsActive)
+	if err := req.Validate(); err != nil {
+		http.Error(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	bannerID, err := h.bannerService.CreateBanner(r.Context(), req.TagIDs, req.FeatureID, req.Content, req.IsActive)
 	if err != nil {
 		switch {
 		case errors.Is(err, banner.ErrNoFeatureID), errors.Is(err, banner.ErrNoTagIDs), errors.Is(err, banner.ErrJSONMarshal):
@@ -131,9 +153,14 @@ func (h *AdminBannerHandler) UpdateBanner(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var req dto.UpdateBannerRequest
+	var req banner_dto.PatchBannerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("error reading request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		http.Error(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
 		return
 	}
 

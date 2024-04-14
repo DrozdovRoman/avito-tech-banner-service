@@ -9,7 +9,6 @@ import (
 	"github.com/DrozdovRoman/avito-tech-banner-service/internal/infrastructure/db"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,6 +49,7 @@ func (b *BannerRepository) GetBanner(ctx context.Context, id int) (*banner.Banne
 		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := builderSelectBanner.Where(sq.Eq{colId: id}).ToSql()
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %v", err)
 	}
@@ -271,7 +271,6 @@ func (b *BannerRepository) updateBannerFeatureTag(ctx context.Context, banner *b
 
 func (b *BannerRepository) addBannerFeatureTags(ctx context.Context, bannerID int, featureID int, tagIDs []int) error {
 	for _, tagID := range tagIDs {
-		logrus.Info(tagID)
 		sql, args, err := sq.Insert(tableBannerFeatureTag).
 			Columns(colFKBannerID, colFKFeatureID, colFKTagID).
 			Values(bannerID, featureID, tagID).
